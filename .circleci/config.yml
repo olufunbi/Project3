@@ -81,12 +81,12 @@ jobs:
             npm update kind-of --depth 10
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: basic_success_1
+      # - slack/notify:
+      #     event: fail
+      #     template: basic_fail_1
+      # - slack/notify:
+      #     event: pass
+      #     template: basic_success_1
 
   scan-backend:
     docker:
@@ -106,12 +106,12 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: basic_success_1
+      # - slack/notify:
+      #     event: fail
+      #     template: basic_fail_1
+      # - slack/notify:
+      #     event: pass
+      #     template: basic_success_1
 
   # scan-backend:
     # docker:
