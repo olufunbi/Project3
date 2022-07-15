@@ -341,6 +341,7 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update tar gzip nodejs npm curl git openssh-client
+            pip install awscli
       - run:
           name: Frontend smoke test.
           command: |
