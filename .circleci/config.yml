@@ -20,6 +20,25 @@ commands:
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.workflow_ID >>
             aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.workflow_ID >>
 
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      workflow_ID:
+        type: string
+        default: ${CIRCLE_WORKFLOW_ID:0:7}
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            SUCCESS=$(curl --insecure  https://kvdb.io/9tt4L1mumez4fcYBcDzDqS/migration_<< parameters.workflow_ID >>)
+            if (( $SUCCESS == 1 ));
+            then
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi
+
 jobs:
   build-frontend:
     docker:
@@ -200,7 +219,39 @@ jobs:
             ansible-playbook -i inventory.txt configure-server.yml
             # exit 1
       - destroy-environment:
-          workflow_ID: ${CIRCLE_WORKFLOW_ID:0:7}   
+          workflow_ID: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  run-migrations:
+    docker:
+      - image: python:3.10-alpine3.16
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update tar gzip nodejs npm curl git openssh-client
+            pip install awscli
+      - run:
+          name: Run migrations
+          command: |
+              cd backend/src
+              npm install
+              npm run migrations >> migrations_dump.txt
+              cat migrations_dump.txt
+      - run:
+          name: Send migration results to kvd.io
+          command: |
+              if grep -q "has been executed successfully" ~/project/backend/migrations_dump.txt
+              then
+                curl https://kvdb.io/9tt4L1mumez4fcYBcDzDqS/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+              fi
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
+      - revert-migrations: 
+          workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
 
 workflows:
   default:
@@ -219,3 +270,5 @@ workflows:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
