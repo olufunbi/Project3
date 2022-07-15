@@ -284,7 +284,6 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters Name=instance-state-name,Values=running Name=tag:project,Values=backend-infra \
               --output text)
-            
             export API_URL="http://${BACKEND_HOSTNAME}:3030"
             echo "${API_URL}"
             echo API_URL="http://${BACKEND_HOSTNAME}:3030" >> frontend/.env
@@ -424,9 +423,9 @@ jobs:
     steps:
       - checkout
       - run:
-            name: Install dependencies
-            command: |
-              yum -y install tar gzip
+          name: Install dependencies
+          command: |
+            yum -y install tar gzip
       - attach_workspace:
             at: ~/
       - run:
