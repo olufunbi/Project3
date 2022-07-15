@@ -236,20 +236,99 @@ jobs:
       - run:
           name: Run migrations
           command: |
-              cd backend/src
+              cd backend
               npm install
               npm run migrations >> migrations_dump.txt
               cat migrations_dump.txt
       - run:
-          name: Send migration results to kvd.io
+          name: Send migration results to kvdb.io
           command: |
-              if grep -q "has been executed successfully" ~/project/backend/src/migrations_dump.txt
+              if grep -q "has been executed successfully" ~/project/backend/migrations_dump.txt
               then
                 curl https://kvdb.io/9tt4L1mumez4fcYBcDzDqS/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
               fi
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - revert-migrations: 
+          workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+
+  deploy-frontend:
+    docker:
+      - image: python:3.10-alpine3.16
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update tar gzip curl nodejs npm openssh-client git
+            pip install awscli
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_HOSTNAME=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=backend-infra" \
+              --output text)
+            
+            export API_URL="http://${BACKEND_HOSTNAME}:3030"
+            echo "${API_URL}"
+            echo API_URL="http://${BACKEND_HOSTNAME}:3030" >> frontend/.env
+            cat frontend/.env
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            cat .env
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - destroy-environment:
+          workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"  
+      - revert-migrations: 
+          workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+
+  deploy-backend:
+    docker:
+      - image: python:3.10-alpine3.16
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["6d:b4:e5:24:2f:9f:31:5e:ba:08:e8:35:62:6c:d7:e7"] 
+      - attach_workspace:
+          at: ~/
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible tar gzip nodejs npm curl git openssh-client
+            pip install awscli
+      - run:
+          name: Deploy backend
+          command: |     
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
+            mkdir .circleci/ansible/roles/deploy/files/
+            mv artifact.tar.gz .circleci/ansible/roles/deploy/files/
+            ls -lh                            
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------"
+            cat inventory.txt   
+            ansible-playbook -i inventory.txt deploy-backend.yml
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
+      - destroy-environment:
+          workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"  
       - revert-migrations: 
           workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
 
@@ -272,3 +351,7 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-frontend:
+          requires: [run-migrations]
