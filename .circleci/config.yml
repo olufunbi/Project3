@@ -272,7 +272,7 @@ jobs:
           command: |
             export BACKEND_HOSTNAME=$(aws ec2 describe-instances \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=backend-infra" \
+              --filters Name=instance-state-name,Values=running Name=tag:project,Values=backend-infra \
               --output text)
             
             export API_URL="http://${BACKEND_HOSTNAME}:3030"
@@ -357,12 +357,12 @@ jobs:
           command: |
             export BACKEND_HOSTNAME=$(aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+            --filters Name=instance-state-name,Values=running Name=tag:project,Values=backend-infra \
             --output text)
     
             export API_URL="http://${BACKEND_HOSTNAME}:3030"
             echo "${API_URL}"
-            sleep 3m
+            sleep 1m
             if curl "${API_URL}/api/status" | grep "ok"
             then
                 return 0
@@ -398,4 +398,4 @@ workflows:
       - deploy-backend:
           requires: [run-migrations]
       - smoke-test:
-          requires: [deploy-backend]
+          requires: [deploy-backend, deploy-frontend]
