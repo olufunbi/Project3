@@ -190,7 +190,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible
+            apk add --update ansible tar gzip nodejs npm curl git openssh-client
             pip install awscli
             # exit 1
       - run:
