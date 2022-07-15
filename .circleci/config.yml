@@ -171,7 +171,6 @@ jobs:
               --tags project=backend-infra \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
-              # exit 1
       - run:
           name: Ensure front-end infrastructure exist
           command: |
@@ -179,8 +178,7 @@ jobs:
               --template-file .circleci/files/frontend.yml \
               --tags project=frontend-infra \
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-              # exit 1
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -188,8 +186,7 @@ jobs:
               --filters Name=instance-state-name,Values=running Name=tag:project,Values=backend-infra \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --output text >> ~/project/.circleci/ansible/inventory.txt
-            cat ~/project/.circleci/ansible/inventory.txt
-            # exit 1
+            cat ~/project/.circleci/ansible/inventory.txt  
       - persist_to_workspace:
           root: ~/
           paths:
@@ -211,7 +208,6 @@ jobs:
           command: |
             apk add --update ansible tar gzip nodejs npm curl git openssh-client
             pip install awscli
-            # exit 1
       - run:
           name: Configure server
           command: |
@@ -227,8 +223,7 @@ jobs:
             echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> ~/project/backend/.env
             echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> ~/project/backend/.env
             cd .circleci/ansible
-            ansible-playbook -i inventory.txt configure-server.yml
-            # exit 1
+            ansible-playbook -i inventory.txt configure-server.yml     
       - persist_to_workspace:
           root: ~/
           paths:
@@ -374,7 +369,6 @@ jobs:
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters Name=instance-state-name,Values=running Name=tag:project,Values=backend-infra \
             --output text)
-    
             export API_URL="http://${BACKEND_HOSTNAME}:3030"
             echo "${API_URL}"
             sleep 1m
