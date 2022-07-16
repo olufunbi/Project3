@@ -259,15 +259,13 @@ jobs:
               then
                 curl https://kvdb.io/9tt4L1mumez4fcYBcDzDqS/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
               fi
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/backend/migrations_dump.txt
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
       - revert-migrations: 
           workflow_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy-environment:
+          workflow_ID: ${CIRCLE_WORKFLOW_ID:0:7}
 
   deploy-frontend:
     docker:
