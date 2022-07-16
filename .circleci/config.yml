@@ -424,11 +424,11 @@ jobs:
     steps:
       - checkout
       - run:
-            name: Install dependencies
-            command: |
-              yum -y install tar gzip
+          name: Install dependencies
+          command: |
+            yum -y install tar gzip
       - attach_workspace:
-            at: ~/
+          at: ~/
       - run:
           name: Remove old stacks
           command: |
